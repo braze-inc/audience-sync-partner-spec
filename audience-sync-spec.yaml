@@ -1,0 +1,418 @@
+openapi: 3.0.3
+info:
+  title: Braze Audience Sync Partner Spec
+  description: |-
+    This is a mock API for a potential Braze Audience Sync partner. It specifies required and optional endpoints in order to integrate with Braze. The endpoint specifications define the minimal data necessary, but overall are flexible so that the partner can follow their own standards when configuring the endpoints.  
+    
+    Some useful links:
+    - [Understanding Braze Audience Sync](https://www.braze.com/resources/videos/understanding-braze-audience-sync)
+  version: 1.0.0
+tags:
+  - name: Authentication
+    description: OAuth 2.0 endpoints
+  - name: Me
+    description: Access to Petstore orders
+  - name: Ad Accounts
+    description: Fetching ad accounts
+  - name: Audiences
+    description: Audience stuff
+paths:
+  /authorizationUrl:
+    get:
+      tags:
+        - Authentication
+      summary: Generates an authorization url
+      description:  The first part of the three legged OAuth 2.0 flow documented [here](https://auth0.com/docs/authenticate/protocols/oauth#authorization-endpoint). There is no response, we just expect to receive a callback as the next step. 
+      parameters:
+        - name: redirect_uri
+          in: query
+          description: Holds a URL. A successful response from this endpoint results in a redirect to this URL.
+          required: true
+          explode: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: An opaque value, used for security purposes and returned to the application as part of the redirect_uri.
+          required: true
+          explode: true
+          schema:
+            type: string
+        - name: client_id
+          in: query
+          description: The ID of the application that asks for authorization.
+          required: true
+          explode: true
+          schema:
+            type: string
+        - name: scope
+          in: query
+          description: A space-delimited list of permissions that the application requires. Optional because sometimes the permissions are specified at the App level.
+          required: false
+          explode: true
+          schema:
+            type: string
+        - name: response_type
+          in: query
+          description: Tells the authorization server which grant to execute (usually set to \"code\").
+          required: false
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success!
+  /oauth2/token:
+    post:
+      tags:
+        - Authentication
+      summary: Generates access/refresh token(s) or refreshes an access token
+      description: The final step of the three legged OAuth 2.0 flow documented [here](). Can either be used to exchange *code* for an *access token* and optionally a *refresh token* or to refresh an existing *access token* with a valid *refresh token*.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Auth'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /me:
+    get:
+      tags:
+        - Me
+      summary: Returns authorized user's display information
+      description: This endpoint should return the authorized user's display information such as a name or some sort of handle.
+      parameters:
+        - name: Authorization
+          in: header
+          description: Authorization header to specify the bearer access token
+          example: Bearer FakeAccessToken12345
+          required: true
+          explode: true
+          schema:
+            type: string  
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+  /adAccounts:
+    get:
+      tags:
+        - Ad Accounts
+      summary: Returns all ad accounts for authorized user.
+      description: This endpoint should find and return all ad accounts for the authorized user (we support pagination).
+      parameters:
+        - name: Authorization
+          in: header
+          description: Authorization header to specify the bearer access token
+          example: Bearer FakeAccessToken12345
+          required: true
+          explode: true
+          schema:
+            type: string  
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdAccounts'          
+  /adAccounts/{adAccountId}:
+    get:
+      tags:
+        - Ad Accounts
+      summary: Returns specified ad account for authorized user.
+      description: This endpoint should find and return the specified ad account for the authorized user.
+      parameters:
+        - name: adAccountId
+          in: path
+          description: Ad account id to fetch
+          required: true
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          description: Authorization header to specify the bearer access token
+          example: Bearer FakeAccessToken12345
+          required: true
+          explode: true
+          schema:
+            type: string              
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdAccount'
+  /adAccounts/{adAccountId}/audiences:
+    get:
+      tags:
+        - Audiences
+      summary: Returns all audiences for specified ad account
+      description: This endpoint should find and return all audiences for the specified ad account under the authorized user (we support pagination).
+      parameters:
+        - name: adAccountId
+          in: path
+          description: Ad account id to fetch
+          required: true
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          description: Authorization header to specify the bearer access token
+          example: Bearer FakeAccessToken12345
+          required: true
+          explode: true
+          schema:
+            type: string      
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Audiences'
+    post:
+      tags:
+        - Audiences
+      summary: Creates an audience in specified ad account
+      description: This endpoint creates an audience in the specified ad account with the provided audience name 
+      parameters:
+        - name: adAccountId
+          in: path
+          description: Ad account id to fetch
+          required: true
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          description: Authorization header to specify the bearer access token
+          example: Bearer FakeAccessToken12345
+          required: true
+          explode: true
+          schema:
+            type: string  
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Audience name
+                type:
+                  type: string
+                  description: Audience type, required when only one type of user data can be synced per audience
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Audience'
+  /adAccounts/{adAccountId}/audiences/{audienceId}/users:
+    post:
+      tags:
+        - Audiences
+      summary: Adds/deletes users to/from an audience
+      description: This endpoint should add or delete users to/from an existing audience in an ad account. The maximum number of users per request should be limited to at least 10,000. The request body contains one example of how to structure the users. Another example is specified in the schemas below under UsersIdentifierHash.
+      parameters:
+        - name: adAccountId
+          in: path
+          description: Ad account to sync users to
+          required: true
+          schema:
+            type: string
+        - name: audienceId
+          in: path
+          description: Audience to sync users to
+          required: true
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          description: Authorization header to specify the bearer access token
+          example: Bearer FakeAccessToken12345
+          required: true
+          explode: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersIdentifierArray'   
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+components:
+  schemas:
+    Auth:
+      required:
+        - clientId
+        - clientSecret
+        - grantType
+      type: object
+      properties:
+        clientId:
+          type: string
+          description: The ID of the application that asks for authorization.
+        clientSecret:
+          type: string
+          description: The secret of the application that asks for authorization.
+        grantType:
+          type: string
+          description: Tells the authorization server which grant type to use, either authorization_code, in order to exchange code for access/refresh token(s) or refresh_token, in order to refresh an access token
+        code:
+          type: string
+          description: (Required when grantType equals *authorization_code*) Authorization code received sent via callback
+        refreshToken:
+          type: string
+          description: (Required when grantType equals *refresh_token*) Refresh token to refresh the access token when it expires.
+        redirectUri:
+          type: string
+          description: The redirect uri sent to authorization url endpoint, used for security purposes.
+      xml:
+        name: auth
+    AuthResponse:
+      required:
+        - access_token
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: Access token allowing requests on behalf of authorized user for specified scopes.
+        refresh_token:
+          type: string
+          description: Refresh token to refresh the access token when it expires.
+        refresh_token_expires_in:
+          type: integer
+          description: Number of seconds until refresh token expires. Braze will send reminders to re-authorize when the expiration date approaches.
+    UserInfo:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          description: User's display name.
+    AdAccounts:
+      type: object
+      properties:
+        data: 
+          type: array
+          items:
+            $ref: '#/components/schemas/AdAccount'
+    AdAccount:
+      required:
+        - id
+        - name    
+      type: object
+      properties:
+        id:
+          type: string
+          description: Ad account id
+        name:
+          type: string
+          description: Ad account name
+    Audience:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: string
+          description: Audience id
+        name:
+          type: string
+          description: Audience name
+        type:
+          type: string
+          description: Audience type, required when only one type of user data can be synced per audience
+    Audiences:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Audience'
+    Identifier:
+      type: string
+      description: One of many user identifiers such as email, phone, idfa, aaid, etc
+    UserIdentifierArray:
+     type: array
+     example: ["test@email.com", "222-111-3333", "123e4567-e89b-12d3-a456-426614174000"]
+     items:
+        $ref: '#/components/schemas/Identifier'
+    UsersIdentifierArray:
+      required:
+        - operation
+        - schema
+        - users
+      type: object
+      properties:
+        operation:
+          type: string
+          description: specifies whether to add or delete users
+          example: "add"
+        schema:
+          type: array
+          example: ["email", "phone", "idfa"]
+          items:
+            type: string
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserIdentifierArray'
+    UserIdentifierHash:
+      type: object
+      description: "should include all supported identifiers"
+      properties:
+        email:
+          example: "test@email.com"
+          type: string
+        phone:
+          example: "222-111-3333"
+          type: string
+        idfa: 
+          example: "123e4567-e89b-12d3-a456-426614174000"
+          type: string
+    UsersIdentifierHash:
+      required:
+        - operation
+        - users
+      type: object
+      properties:
+        operation:
+          type: string
+          description: specifies whether to add or delete users
+          example: "add"
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserIdentifierHash'
+    SyncResponse:
+      type: object
+      properties:
+        usersSucceeded:
+          type: integer
+        usersErrored:
+          type: integer
+        
+        
