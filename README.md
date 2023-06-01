@@ -1,0 +1,1 @@
+# audience-sync-partner-spec
