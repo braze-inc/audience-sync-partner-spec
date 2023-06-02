@@ -10,12 +10,12 @@ info:
 tags:
   - name: Authentication
     description: OAuth 2.0 endpoints
-  - name: Me
-    description: Access to Petstore orders
+  - name: User
+    description: Authorized user's informatioin
   - name: Ad Accounts
     description: Fetching ad accounts
   - name: Audiences
-    description: Audience stuff
+    description: Fetching/creating audiences as well as syncing users to audiences
 paths:
   /authorizationUrl:
     get:
@@ -80,10 +80,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
-  /me:
+  /user:
     get:
       tags:
-        - Me
+        - User
       summary: Returns authorized user's display information
       description: This endpoint should return the authorized user's display information such as a name or some sort of handle.
       parameters:
